@@ -1,0 +1,28 @@
+/* Usar una fuente eficiente como Inter, que tiene buena legibilidad y rendimiento */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Evitar sombras complejas, usar bordes para la separación, lo cual es menos costoso de renderizar */
+.card {
+    background-color: #272727;
+    padding: 1.5rem;
+    border-radius: 10px;
+    border: 1px solid #424242;
+    margin-bottom: 1rem;
+}
+
+.stButton>button {
+    width: 100%;
+    border-radius: 8px;
+    background-color: #2E7D32;
+    color: white;
+    border: none;
+    transition: background-color 0.3s ease; /* Transición simple y eficiente */
+}
+
+.stButton>button:hover {
+    background-color: #4CAF50; /* Un feedback visual claro con mínimo coste */
+}
