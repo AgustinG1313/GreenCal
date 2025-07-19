@@ -1,35 +1,40 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-import data_manager as dm # Importamos nuestro módulo de datos
+# Importamos nuestro módulo de datos para poder usar sus funciones.
+import data_manager as dm 
 
 # --- 1. CONFIGURACIÓN DE PÁGINA Y ESTADO ---
 st.set_page_config(page_title="GreenCalc", page_icon="♻️", layout="centered")
 
-# Carga eficiente de CSS usando cache_resource para que no se recargue en cada script run.
+# Usamos @st.cache_resource para el CSS porque el recurso (el archivo) no cambia.
+# Esto asegura que el archivo CSS se lee del disco solo una vez por sesión.
 @st.cache_resource
 def load_css(file_name):
     with open(file_name) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 load_css('style.css')
 
-# Inicialización del estado de la sesión (se ejecuta solo una vez por sesión de usuario).
-# Este es el corazón de la persistencia de datos en el frontend.
+# st.session_state es como la memoria a corto plazo de la app.
+# Este bloque if se ejecuta solo una vez cuando un usuario abre la app.
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.current_user = None
-    # Cargamos los electrodomésticos una vez y los guardamos en la sesión para un acceso rápido.
     st.session_state.appliances = dm.load_appliances()
+    # Añadimos una variable para controlar qué formulario mostrar: 'login' o 'register'
+    st.session_state.page = 'login'
 
-# --- 2. DEFINICIÓN DE PÁGINAS (Placeholders para ser llenados) ---
-# Responsable: Desarrollador A (UI) y B (Lógica) colaboran en cada una.
+# --- 2. DEFINICIÓN DE PÁGINAS ---
 
 def show_login_page():
+    """
+    Muestra la página de inicio de sesión o registro, según el estado de st.session_state.page.
+    """
     st.title("Bienvenido a GreenCalc ♻️")
     st.markdown("Tu asistente para un futuro más sostenible.")
 
-    col1, col2 = st.columns(2)
-
-    with col1:
+    # --- Lógica para cambiar entre Login y Registro ---
+    if st.session_state.page == 'login':
+        # --- Formulario de Inicio de Sesión ---
         with st.form("login_form"):
             st.header("Iniciar Sesión")
             email = st.text_input("Correo Electrónico (simulado)")
@@ -40,11 +45,18 @@ def show_login_page():
                 if email and password:
                     st.session_state.logged_in = True
                     st.session_state.current_user = email.split('@')[0].capitalize()
-                    st.experimental_rerun()
+                    st.rerun() 
                 else:
                     st.error("Por favor, completa ambos campos.")
+        
+        # Enlace para cambiar al formulario de registro
+        st.info("¿No tienes una cuenta?")
+        if st.button("Regístrate aquí"):
+            st.session_state.page = 'register'
+            st.rerun() 
 
-    with col2:
+    elif st.session_state.page == 'register':
+        # --- Formulario de Registro ---
         with st.form("register_form"):
             st.header("Registro")
             nombre = st.text_input("Nombre y Apellido")
@@ -56,138 +68,183 @@ def show_login_page():
                 if nombre and email_reg and password_reg:
                     st.session_state.logged_in = True
                     st.session_state.current_user = nombre.split(' ')[0].capitalize()
-                    st.experimental_rerun()
+                    st.session_state.page = 'login' # Resetear por si vuelve a desloguearse
+                    st.rerun() 
                 else:
                     st.error("Por favor, completa todos los campos.")
+        
+        # Enlace para volver al formulario de login
+        st.info("¿Ya tienes una cuenta?")
+        if st.button("Inicia sesión"):
+            st.session_state.page = 'login'
+            st.rerun() 
+            
+    # --- Bypass para desarrolladores ---
+    st.divider()
+    if st.button("Bypass de desarrollador (Entrar como Admin)"):
+        st.session_state.logged_in = True
+        st.session_state.current_user = "Admin"
+        st.rerun() 
+
 
 def show_panel_page():
-    st.title(f"Panel de Control, {st.session_state.current_user}! 📈")
-
-    df_records = dm.load_records()
-    appliances = st.session_state.appliances
-
-    # Realizar cálculos una sola vez
-    avg_consumo = df_records["Consumo (kWh)"].mean() if not df_records.empty else 0
-    consumo_electrodomesticos = sum(
-        (a['potencia'] * a['cantidad'] * a['horas_dia'] * a['dias_semana'] * 4) / 1000 for a in appliances
-    )
-    total_estimado = consumo_electrodomesticos + avg_consumo
-
-    # Mostrar KPIs en un layout claro
-    st.subheader("Resumen Mensual")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Consumo Total Estimado", f"{total_estimado:.2f} kWh/mes")
-    col2.metric("Consumo Facturas (Prom.)", f"{avg_consumo:.2f} kWh")
-    col3.metric("Consumo Electrodomésticos", f"{consumo_electrodomesticos:.2f} kWh")
-
-    # Visualización simple y eficiente
-    if appliances:
-        st.subheader("Distribución de Consumo por Electrodoméstico")
-        app_consumo_df = pd.DataFrame([{
-            'Electrodoméstico': a['tipo'],
-            'Consumo kWh': (a['potencia'] * a['cantidad'] * a['horas_dia'] * a['dias_semana'] * 4) / 1000
-        } for a in appliances])
-
-        app_consumo_df = app_consumo_df.groupby('Electrodoméstico')['Consumo kWh'].sum()
-        st.bar_chart(app_consumo_df)
+    st.title("Panel de Control (en construcción)")
 
 def show_facturas_page():
+    """
+    Muestra la interfaz para gestionar las facturas de consumo eléctrico.
+    """
     st.title("Gestión de Facturas 🧾")
-    st.markdown("Registra tus facturas para un seguimiento preciso.")
+    st.markdown("Registra tus facturas para un seguimiento preciso de tu consumo y gasto.")
 
+    # --- Formulario para añadir una nueva factura ---
     with st.form("factura_form"):
-        st.subheader("Agregar dato factura")
+        st.subheader("Agregar Nuevo Registro de Factura")
+        
         col1, col2 = st.columns(2)
-        consumo_kwh = col1.number_input("Consumo (kWh)", min_value=0.0, format="%.2f")
-        costo_ars = col2.number_input("Costo Consumo (ARS)", min_value=0.0, format="%.2f")
+        
+        with col1:
+            consumo_kwh = st.number_input("Consumo de la Factura (kWh)", min_value=0.0, format="%.2f")
+        
+        with col2:
+            costo_ars = st.number_input("Costo Total de la Factura (ARS)", min_value=0.0, format="%.2f")
 
         submitted = st.form_submit_button("Guardar Registro")
-        if submitted and consumo_kwh > 0:
-            dm.save_record(consumo_kwh, costo_ars)
-            st.success("¡Factura registrada con éxito!")
+        
+        if submitted:
+            if consumo_kwh > 0:
+                dm.save_record(consumo_kwh, costo_ars)
+                st.success("¡Factura registrada con éxito!")
+            else:
+                st.warning("Por favor, ingresa un valor de consumo mayor a cero.")
+    
+    st.divider()
 
-    st.subheader("Registro de Consumos Pasados")
+    # --- Historial de Registros ---
+    st.subheader("Historial de Consumos")
+    
     df_records = dm.load_records()
-    st.dataframe(df_records, use_container_width=True)
+    
+    if df_records.empty:
+        st.info("Aún no has registrado ninguna factura. ¡Empieza añadiendo una!")
+    else:
+        st.dataframe(df_records, use_container_width=True)
 
-    if not df_records.empty:
-        avg_consumo = df_records["Consumo (kWh)"].mean()
-        st.metric(label="Tu Consumo Promedio Mensual (Facturas)", value=f"{avg_consumo:.2f} kWh")
-
-    st.info("**Dato de contexto:** El consumo promedio en Chaco es de 250 kWh. ¡Compara y busca mejorar!")
+        # --- Conciencia del Carbono: Dando Contexto ---
+        avg_consumo_usuario = df_records["Consumo (kWh)"].mean()
+        
+        col1, col2 = st.columns(2)
+        col1.metric(label="Tu Consumo Promedio Mensual", value=f"{avg_consumo_usuario:.1f} kWh")
+        
+        consumo_promedio_chaco = 250
+        diferencia = avg_consumo_usuario - consumo_promedio_chaco
+        col2.metric(label="Promedio Provincial (Chaco)", value=f"{consumo_promedio_chaco} kWh", delta=f"{diferencia:.1f} kWh")
+        
+        st.caption("El 'delta' muestra tu consumo en comparación con el promedio de la provincia. Un número negativo significa que consumes menos que el promedio. ¡Bien hecho!")
 
 def show_electrodomesticos_page():
-    st.title("Mis Electrodomésticos 🔌")
+    """
+    Muestra un panel interactivo para que el usuario añada sus electrodomesticos.
+    """
+    st.title("Añadir Electrodomésticos a tu Inventario 🔌")
+    st.markdown("Haz clic en un aparato para configurarlo y añadirlo a tu lista personal.")
 
-    # Base de datos de potencias (fuente: Consumo Total Actualizado.docx)
-    appliance_db = {
-        "Heladera c/freezer": {"potencia": 150}, "Aire Acond. Split 2200fg": {"potencia": 877.5},
-        "Lavadora Automática": {"potencia": 500}, "Horno eléctrico 30L": {"potencia": 1500},
-        "Lámpara LED 11W": {"potencia": 11}, "CPU de escritorio": {"potencia": 200},
-        "Laptop/Notebook": {"potencia": 60}, "Pava eléctrica": {"potencia": 2000},
-        "Cargador de celular": {"potencia": 5}, "Router WiFi": {"potencia": 10}
+    # Base de datos ampliada con consumo en Standby (basado en los documentos)
+    APPLIANCE_DB = {
+        "Heladera": {"potencia_w": 150, "emoji": "🧊", "standby_w": 2},
+        "Aire Acondicionado": {"potencia_w": 878, "emoji": "❄️", "standby_w": 3},
+        "Lavadora": {"potencia_w": 500, "emoji": "🧺", "standby_w": 1},
+        "Horno Eléctrico": {"potencia_w": 1500, "emoji": "🔥", "standby_w": 2},
+        "Lámpara LED": {"potencia_w": 11, "emoji": "💡", "standby_w": 0},
+        "Computadora": {"potencia_w": 200, "emoji": "💻", "standby_w": 5},
+        "Laptop/Notebook": {"potencia_w": 60, "emoji": " portátil", "standby_w": 3},
+        "Pava Eléctrica": {"potencia_w": 2000, "emoji": "🫖", "standby_w": 0},
+        "Cargador de Celular": {"potencia_w": 5, "emoji": "📱", "standby_w": 1},
+        "Router WiFi": {"potencia_w": 10, "emoji": "📶", "standby_w": 0},
+        "Monitor": {"potencia_w": 22, "emoji": "🖥️", "standby_w": 2},
+        "Plancha": {"potencia_w": 1500, "emoji": "ủi", "standby_w": 0},
+        "Televisor": {"potencia_w": 120, "emoji": "📺", "standby_w": 4},
+        "Microondas": {"potencia_w": 1100, "emoji": "🍲", "standby_w": 3},
     }
 
-    with st.form("appliance_form", clear_on_submit=True):
-        st.subheader("Añadir nuevo")
-        col1, col2, col3, col4 = st.columns(4)
-        tipo = col1.selectbox("Tipo", options=list(appliance_db.keys()))
-        horas = col2.number_input("Horas/día", min_value=0.1, value=1.0, step=0.5)
-        dias = col3.number_input("Días/semana", min_value=1, max_value=7, value=7)
-        cantidad = col4.number_input("Cantidad", min_value=1, value=1)
+    # --- Función para el Diálogo de Configuración Detallada ---
+    @st.dialog("Configurar Electrodoméstico")
+    def appliance_dialog(tipo, data):
+        st.markdown(f"### {data['emoji']} Configura tu {tipo}")
+        
+        # --- NUEVOS CAMPOS DETALLADOS ---
+        # El usuario puede ajustar la potencia si conoce el valor exacto de su modelo.
+        potencia_w_editable = st.number_input("Potencia (Watts)", min_value=1, value=data['potencia_w'], key=f"potencia_{tipo}")
+        
+        # El "consumo fantasma" es clave para la conciencia energética.
+        standby_w = st.number_input("Consumo en Standby/Vampiro (Watts)", min_value=0, value=data.get('standby_w', 0), key=f"standby_{tipo}")
+        
+        cantidad = st.number_input("Cantidad de aparatos", min_value=1, step=1, key=f"cantidad_{tipo}")
+        horas_dia = st.number_input("Horas de uso al día", min_value=0.0, max_value=24.0, value=1.0, step=0.5, key=f"horas_{tipo}")
+        dias_semana = st.number_input("Días de uso a la semana", min_value=1, max_value=7, value=7, step=1, key=f"dias_{tipo}")
+        
+        # Un slider es más intuitivo para seleccionar meses.
+        meses_uso = st.slider("Meses de uso al año", min_value=1, max_value=12, value=12, key=f"meses_{tipo}")
 
-        submitted = st.form_submit_button("Añadir")
-        if submitted:
+        if st.button("Añadir a mi inventario", key=f"btn_{tipo}"):
             new_appliance = {
-                "tipo": tipo, "horas_dia": horas, "dias_semana": dias, "cantidad": cantidad,
-                "potencia": appliance_db[tipo]["potencia"]
+                "tipo": tipo,
+                "cantidad": cantidad,
+                "horas_dia": horas_dia,
+                "dias_semana": dias_semana,
+                "potencia_w": potencia_w_editable,
+                "standby_w": standby_w,
+                "meses_uso": meses_uso
             }
             dm.save_appliance(new_appliance)
             st.session_state.appliances.append(new_appliance)
-            st.success(f"¡{tipo} añadido!")
+            st.success(f"¡{cantidad}x {tipo} añadido(s)!")
+            st.rerun()
 
-    st.subheader("Lista de Electrodomésticos")
+    # --- Panel de Selección de Electrodomésticos (Volvemos al diseño de botones) ---
+    st.markdown('<div class="appliance-grid">', unsafe_allow_html=True)
+    cols = st.columns(5)
+    for i, (tipo, data) in enumerate(APPLIANCE_DB.items()):
+        with cols[i % 5]:
+            if st.button(f"{data['emoji']}\n{tipo}", key=tipo, use_container_width=True):
+                appliance_dialog(tipo, data)
+                
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.divider()
+
+    # --- Inventario Personal del Usuario ---
+    st.subheader("Tu Inventario Actual")
     if not st.session_state.appliances:
-        st.warning("Aún no has añadido ningún electrodoméstico.")
+        st.info("Tu inventario está vacío. Haz clic en un aparato de arriba para empezar.")
     else:
-        cols = st.columns(3)
-        for i, appliance in enumerate(st.session_state.appliances):
-            with cols[i % 3]:
-                with st.container(border=True):
-                    st.markdown(f"**{appliance['cantidad']}x {appliance['tipo']}**")
-                    with st.expander("Ver detalles"):
-                        # Cálculos que solo se ejecutan al hacer clic (Lazy Loading)
-                        potencia_total = appliance['potencia'] * appliance['cantidad']
-                        consumo_mensual = (potencia_total * appliance['horas_dia'] * appliance['dias_semana'] * 4) / 1000
-                        st.metric(label="Consumo Mensual Est.", value=f"{consumo_mensual:.2f} kWh")
-                        st.caption(f"Uso: {appliance['horas_dia']}h/día, {appliance['dias_semana']} días/sem.")
+        for appliance in st.session_state.appliances:
+            with st.container(border=True):
+                # --- CÁLCULO ACTUALIZADO Y MÁS PRECISO ---
+                # Horas totales de uso activo al mes
+                horas_activas_mes = appliance['horas_dia'] * appliance['dias_semana'] * 4.345
+                # Horas totales en standby al mes (total de horas menos las activas)
+                horas_standby_mes = (24 * 30.4) - horas_activas_mes
+                
+                # Consumo activo en kWh
+                consumo_activo_kwh = (appliance['potencia_w'] * horas_activas_mes) / 1000
+                # Consumo standby en kWh
+                consumo_standby_kwh = (appliance.get('standby_w', 0) * horas_standby_mes) / 1000
+                
+                # Consumo total mensual, ajustado por los meses de uso al año
+                consumo_total_mensual = (consumo_activo_kwh + consumo_standby_kwh) * (appliance.get('meses_uso', 12) / 12)
+                
+                col1, col2 = st.columns([3, 1])
+                col1.markdown(f"**{appliance['cantidad']}x {appliance['tipo']}** ({appliance['horas_dia']}h/día, {appliance['meses_uso']}/12 meses)")
+                col2.metric(label="Consumo Est.", value=f"{consumo_total_mensual:.2f} kWh/mes")
 
 def show_tips_page():
-    st.title("Consejos para un Hogar Sostenible 🌱")
-    st.markdown("Pequeños cambios, gran impacto. Aquí tienes algunas ideas:")
-
-    tips = {
-        "💡 Iluminación Eficiente": "Reemplaza tus bombillas por tecnología LED. Consumen hasta un 85% menos y duran más. ¡Apaga siempre las luces al salir de una habitación!",
-        "🔌 'Consumo Fantasma'": "Desenchufa aparatos que no uses. Muchos consumen energía en standby. Usa zapatillas con interruptor.",
-        "❄️ Aire Acondicionado a 24°C": "En verano, fija la temperatura en 24°C. Cada grado menos aumenta el consumo en un 8%. Limpia los filtros regularmente.",
-        "💧 Lavar con Agua Fría": "La mayor parte de la energía de un lavarropas se usa para calentar el agua. Lavar en frío es igual de efectivo y ahorra muchísimo.",
-        "💻 Optimiza tu PC": "Configura el modo de suspensión tras 15 minutos de inactividad. Apágala por completo si no la usarás por varias horas."
-    }
-
-    for tip_title, tip_content in tips.items():
-        with st.expander(tip_title):
-            st.write(tip_content)
+    st.title("Página de Tips (en construcción)")
 
 
 # --- 3. LÓGICA DE NAVEGACIÓN (EL CEREBRO DE LA APP) ---
-# Responsable: Desarrollador B (Lógica)
-
 if not st.session_state.logged_in:
-    # Si el usuario no está logueado, solo mostramos la página de login.
     show_login_page()
 else:
-    # Si está logueado, mostramos la barra de navegación y la página seleccionada.
-    # Responsable: Desarrollador A (UI)
     selected = option_menu(
         menu_title=f"Hola, {st.session_state.current_user}",
         options=["PANEL", "FACTURAS", "ELECTRODOMÉSTICOS", "TIPS", "Cerrar Sesión"],
@@ -201,7 +258,6 @@ else:
         }
     )
 
-    # Enrutador principal: simple y eficiente. Llama solo a la función necesaria.
     if selected == "PANEL":
         show_panel_page()
     elif selected == "FACTURAS":
@@ -211,8 +267,8 @@ else:
     elif selected == "TIPS":
         show_tips_page()
     elif selected == "Cerrar Sesión":
-        # Limpiamos el estado de la sesión y forzamos una recarga para volver al login.
         st.session_state.logged_in = False
         st.session_state.current_user = None
-        st.session_state.appliances = [] # Limpiar también los datos del usuario
-        st.experimental_rerun()
+        st.session_state.appliances = []
+        st.session_state.page = 'login'
+        st.rerun()

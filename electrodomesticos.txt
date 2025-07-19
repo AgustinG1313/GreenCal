@@ -1,0 +1,4 @@
+{"tipo":"Heladera","cantidad":1,"horas_dia":1.0,"dias_semana":7,"potencia_w":150,"standby_w":2,"meses_uso":12}
+{"tipo":"Lavadora","cantidad":1,"horas_dia":1.0,"dias_semana":7,"potencia_w":500,"standby_w":1,"meses_uso":12}
+{"tipo":"L\u00e1mpara LED","cantidad":12,"horas_dia":13.5,"dias_semana":7,"potencia_w":11,"standby_w":0,"meses_uso":12}
+{"tipo":"Pava El\u00e9ctrica","cantidad":1,"horas_dia":1.0,"dias_semana":7,"potencia_w":2000,"standby_w":0,"meses_uso":12}

@@ -5,15 +5,7 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
-/* Evitar sombras complejas, usar bordes para la separación, lo cual es menos costoso de renderizar */
-.card {
-    background-color: #272727;
-    padding: 1.5rem;
-    border-radius: 10px;
-    border: 1px solid #424242;
-    margin-bottom: 1rem;
-}
-
+/* Estilos generales para los botones (Login, Registro, etc.) */
 .stButton>button {
     width: 100%;
     border-radius: 8px;
@@ -25,4 +17,40 @@ body {
 
 .stButton>button:hover {
     background-color: #4CAF50; /* Un feedback visual claro con mínimo coste */
+}
+
+/* --- ESTILOS ACTUALIZADOS: Replicando la apariencia del ENRE --- */
+.appliance-grid .stButton>button {
+    /* --- 1. La forma circular --- */
+    width: 120px;       /* Ancho fijo */
+    height: 120px;      /* Altura fija (igual al ancho para un círculo perfecto) */
+    border-radius: 50%; /* ¡La propiedad mágica para hacer círculos! */
+    
+    /* --- 2. El color y borde --- */
+    background-color: #e0f7fa; /* Un azul cian muy claro, similar al de la referencia */
+    border: 2px solid transparent; /* Borde transparente por defecto */
+
+    /* --- 3. El contenido (emoji y texto) --- */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5rem;
+    font-size: 2.5rem;   /* Hacemos el emoji mucho más grande */
+    line-height: 1.2;
+    color: #00796b;      /* Un color de texto más oscuro para el contraste */
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Efecto al pasar el ratón: el borde cambia de color */
+.appliance-grid .stButton>button:hover {
+    border-color: #00796b; /* Resaltamos el borde con un color más oscuro */
+    background-color: #b2ebf2; /* Un azul ligeramente más oscuro al pasar el ratón */
+}
+
+/* Estilo para el texto (nombre del aparato) dentro del botón circular */
+.appliance-grid .stButton>button span {
+    font-size: 0.8rem; /* Hacemos el texto del nombre más pequeño que el emoji */
+    margin-top: 5px;   /* Añadimos un pequeño espacio entre el emoji y el texto */
 }
